@@ -45,3 +45,30 @@
   - `제작계획서.md` - 상세 개발 계획 및 일정
 - `easyEDA/` - 회로 설계 파일
 
+
+
+
+
+
+
+
+
+https://oshwhub.com/iMcHineSe/mini_simplefoc
+https://oshwhub.com/flowersauce/simplefoc4008
+https://oshwhub.com/flowersauce/drv8313
+
+https://oshwhub.com/yourallo/youngfoc
+
+
+드라이버는 여러가지 고민 중 심플하게 simpleFOC 드라이버로 진행. 
+모터는 RC용 BLDC 모터를 쓸 수 도 있지만
+기존에 구입했던 저렴이  BLDC 모터에 simpleFOC 드라이버를 연결.
+
+이경우 simplefoc 드라이버에 신호를 주려면 in1, in2,in3  3pwm 필요하며, 
+en, nfault, nsleep, nreset 핀 연결도 필요
+
+모터가 총 3개가 될 예정이므로 디지털 io 핀이 6*3 18 + en 핀 추가로 19개 필요하게 된다. 
+추가로 자기각 센서 등도 고려하므로 spi/i2c 핀도 고려해야 함. 
+
+WeAct-STM32G431C 보드나, WeAct STM32F103VET6 보드를 고려중. 
+
