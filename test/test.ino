@@ -1,60 +1,159 @@
-/*
-  Fade
+#include <SimpleFOC.h>
 
-  This example shows how to fade an LED on pin 9 using the analogWrite()
-  function.
+// 핀 정의
+#define IN1_PIN 11
+#define IN2_PIN 10
+#define IN3_PIN 9
+#define EN_PIN 8
 
-  The analogWrite() function uses PWM, so if you want to change the pin you're
-  using, be sure to use another PWM capable pin. On most Arduino, the PWM pins
-  are identified with a "~" sign, like ~3, ~5, ~6, ~9, ~10 and ~11.
+// AS5600 자기 센서
+MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
 
-  This example code is in the public domain.
+// BLDC 드라이버
+BLDCDriver3PWM driver = BLDCDriver3PWM(IN1_PIN, IN2_PIN, IN3_PIN, EN_PIN);
 
-  https://docs.arduino.cc/built-in-examples/basics/Fade/
-*/
+// BLDC 모터
+BLDCMotor motor = BLDCMotor(7);
 
-int pwm = 13;         // the PWM pin the LED is attached to2
-int speed = 0;
-int dir = 11;  // how bright the LED is
-int fadeAmount = 5;  // how many points to fade the LED by
-
-// the setup routine runs once when you press reset:
-void setup() {
-  // declare pin 9 to be an output:
-  Serial.begin(9600);
-  pinMode(pwm, OUTPUT);
-  pinMode(speed, OUTPUT);
-    pinMode(dir, OUTPUT);
-
-    digitalWrite(dir, HIGH);
-    delay(3000);
+// 센서 테스트
+bool testSensor() {
+  Serial.println(F("\n[1/4] Sensor test..."));
+  float angle = sensor.getAngle();
+  Serial.println(angle, 2);
+  
+  if (angle == 0) {
+    Serial.println(F("FAIL"));
+    return false;
+  }
+  Serial.println(F("PASS"));
+  return true;
 }
 
-// the loop routine runs over and over again forever:
-void loop() {
-  // set the brightness of pin 9:
-  analogWrite(pwm, speed);
-
-  Serial.print("Speed: ");
-  Serial.print(speed);
-  Serial.print(" | Dir: ");
-  Serial.println(dir);
-
-  // change the brightness for next time through the loop:
-  speed = speed + fadeAmount;
-
-  // reverse the direction of the fading at the ends of the fade:
-  if (speed >= 255) {
-    fadeAmount = -fadeAmount;
-  } 
-  else if (speed <= 0) {
-    fadeAmount = -fadeAmount;
-    // Wait 5 seconds at speed 0 before reversing direction
-    delay(5000);
-    dir = !dir;
-    digitalWrite(dir, dir);
+// 폴 페어 찾기
+int findPolePairs() {
+  Serial.println(F("\n[2/4] Finding pole pairs..."));
+  
+  delay(500);
+  float start_angle = sensor.getAngle();
+  
+  // 전기각 1회전
+  for (int i = 0; i <= 314; i++) {
+    motor.move(i * 0.02);
+    motor.loopFOC();
+    delay(15);
   }
   
-  // wait for 30 milliseconds to see the dimming effect
+  delay(500);
+  float end_angle = sensor.getAngle();
+  
+  float angle_change = end_angle - start_angle;
+  if (angle_change < 0) angle_change += 2 * PI;
+  
+  float mechanical_rotations = angle_change / (2 * PI);
+  int pole_pairs = round(1.0 / mechanical_rotations);
+  
+  Serial.print(F("Result: "));
+  Serial.println(pole_pairs);
+  
+  return pole_pairs;
+}
+
+// 회전 테스트
+void testRotation(int pole_pairs) {
+  Serial.println(F("\n[3/4] Rotation test..."));
+  
+  motor.pole_pairs = pole_pairs;
+  
+  // 점진적 가속
+  float v = 0;
+  while (v < 10) {
+    v += 0.1;
+    motor.move(v);
+    motor.loopFOC();
+    delay(10);
+  }
+  
+  // 2초 유지
+  delay(2000);
+  
+  // 감속
+  while (v > 0) {
+    v -= 0.1;
+    motor.move(v);
+    motor.loopFOC();
+    delay(10);
+  }
+  
+  Serial.println(F("PASS"));
+}
+
+// 최종 확인
+void finalTest(int pp) {
+  Serial.println(F("\n[4/4] Final test..."));
+  
+  float v = 0;
+  
+  // 가속
+  while (v < 15) {
+    v += 0.15;
+    motor.move(v);
+    motor.loopFOC();
+    delay(10);
+  }
+  
+  // 유지
+  delay(2000);
+  
+  // 감속
+  while (v > 0) {
+    v -= 0.15;
+    if (v < 0) v = 0;
+    motor.move(v);
+    motor.loopFOC();
+    delay(10);
+  }
+  
+  Serial.println(F("COMPLETE"));
+  Serial.print(F("Pole pairs: "));
+  Serial.println(pp);
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  
+  Serial.println(F("\nMotor Test"));
+  
+  Wire.begin();
+  sensor.init();
+  
+  driver.voltage_power_supply = 12;
+  driver.init();
+  motor.linkDriver(&driver);
+  motor.linkSensor(&sensor);
+  
+  motor.controller = MotionControlType::velocity_openloop;
+  motor.voltage_limit = 2;
+  motor.init();
+  
+  delay(500);
+  
+  if (!testSensor()) {
+    Serial.println(F("ERROR"));
+    while(1);
+  }
+  
+  int pp = findPolePairs();
+  motor.pole_pairs = pp;
+  
+  testRotation(pp);
+  finalTest(pp);
+  
+  Serial.println(F("\nDone"));
+}
+
+void loop() {
+  motor.loopFOC();
+  motor.move(0);
   delay(100);
 }

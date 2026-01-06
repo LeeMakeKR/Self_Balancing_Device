@@ -79,3 +79,20 @@ dengfoc 도 괜찮을듯?
 
 
 
+
+
+simpleFOC 센서 
+https://oshwhub.com/flowersauce/simplefoc4008
+
+https://oshwhub.com/flowersauce/drv8313
+
+전류 센싱 회로 참조
+https://oshwhub.com/expert/bu-zu-bai-yuan-de-simplefoc-wu-shua-dian-ji-qu-dong-ban
+
+여기서는 drv8313 을 사용했는데, 외부 fet를 사용하는 건.. 힘들것 같다
+
+dengfoc 도 괜찮을듯?
+
+
+
+
