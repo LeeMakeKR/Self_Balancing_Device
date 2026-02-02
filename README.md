@@ -67,7 +67,8 @@ in1,in2,in3 3pwm 핀과 ina240 3핀(adc), en만 연결하는 것으로 진행할
 총 25핀 필요.
 
 
-WeAct-STM32G431C 보드나, WeAct STM32F103VET6 보드를 고려중. 
+
+
 
 simpleFOC 센서 
 https://oshwhub.com/flowersauce/simplefoc4008
@@ -79,7 +80,13 @@ https://oshwhub.com/expert/bu-zu-bai-yuan-de-simplefoc-wu-shua-dian-ji-qu-dong-b
 
 여기서는 drv8313 을 사용했는데, 외부 fet를 사용하는 건.. 힘들것 같다
 
-dengfoc 도 괜찮을듯?
 
 
-현재 
+
+mcu  선정
+축마다 esp32 개별보드로 제작한다
+추후 다른 프로젝트에도 쉽게 사용 가능하고, 개발이 비교적 쉬움
+
+이 경우 메인 컨트롤 보드가 별도로 필요. 
+메인 보드와 서브 보드간 통신은? 프로토콜은?
+
