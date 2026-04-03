@@ -95,3 +95,11 @@ mcu  선정
 일단 foc 드라이버 회로를 먼저 만들고, esp32 로 1축 제어부터 테스트 진행하고 3축으로 확장. 
 
 
+코드 참조
+https://oshwhub.com/45coll/lai-luo-san-jiao-xing-3205-ban-ben-you-hua-bu-fen-dian-lu
+
+https://oshwhub.com/45coll/zi-ping-heng-di-lai-luo-san-jiao_10-10-ban-ben
+https://gitee.com/coll45/foc -> https://github.com/LeeMakeKR/FOC_fromgitee 로 클론. 
+
+
+
