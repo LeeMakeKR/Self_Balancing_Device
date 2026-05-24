@@ -98,6 +98,9 @@ mcu  선정
 코드 참조
 https://oshwhub.com/45coll/lai-luo-san-jiao-xing-3205-ban-ben-you-hua-bu-fen-dian-lu
 
+## 참고 자료
+- [서보를 이용한 브레이킹 메커니즘](https://www.youtube.com/shorts/a1a6j6rdXik) - 서보를 이용해 브레이크를 거는 방식 참고
+
 https://oshwhub.com/45coll/zi-ping-heng-di-lai-luo-san-jiao_10-10-ban-ben
 https://gitee.com/coll45/foc -> https://github.com/LeeMakeKR/FOC_fromgitee 로 클론. 
 
