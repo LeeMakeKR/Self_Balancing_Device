@@ -46,36 +46,25 @@ https://oshwhub.com/yourallo/youngfoc
 이경우 simplefoc 드라이버에 신호를 주려면 in1, in2,in3  3pwm 필요하며, 
 en, nfault, nsleep, nreset 핀 연결도 필요
 
-모터가 총 3개가 될 예정이므로 디지털 io 핀이 6*3 18 + en 핀 추가로 19개 필요하게 된다. 
-추가로 자기각 센서 등도 고려하므로 spi/i2c 핀도 고려해야 함. 
+제대로 FOC 모드를 사용하려면 ina240 전류센서 3개를 UVW 각상에 연결해야 한다.
+이경우 adc 핀 3개도 필요.
 
-WeAct-STM32G431C 보드나, WeAct STM32F103VET6 보드를 고려중. 
+이 경우 foc 드라이버에서 fault, sleep, reset 은 무시하고, 
+in1,in2,in3 3pwm 핀과 ina240 3핀(adc), en만 연결하는 것으로 진행할 예정.
+축당 3pwm과 adc 3개, en 1개 핀 필요.
 
-simpleFOC 센서 
-https://oshwhub.com/flowersauce/simplefoc4008
+모터가 총 3개가 될 예정이므로 디지털 io 핀이 9개, adc 핀이 9개, en 핀이 1개(3모터를 하나로 묶음) 필요.
+자기각 센서를 
+추가로 자기각 센서 as5047p 는 spi 통신이므로 cs, clk, miso, mosi 4핀 필요하며 
+3개 구성시 cs 핀만 추가하면 된다. 
+총 4핀(spi) + cs2 + cs3 = 6핀 필요
 
-https://oshwhub.com/flowersauce/drv8313
-
-전류 센싱 회로 참조
-https://oshwhub.com/expert/bu-zu-bai-yuan-de-simplefoc-wu-shua-dian-ji-qu-dong-ban
-
-여기서는 drv8313 을 사용했는데, 외부 fet를 사용하는 건.. 힘들것 같다
-
-dengfoc 도 괜찮을듯?
-
-simpleFOC 센서 
-https://oshwhub.com/flowersauce/simplefoc4008
-
-https://oshwhub.com/flowersauce/drv8313
-
-전류 센싱 회로 참조
-https://oshwhub.com/expert/bu-zu-bai-yuan-de-simplefoc-wu-shua-dian-ji-qu-dong-ban
-
-여기서는 drv8313 을 사용했는데, 외부 fet를 사용하는 건.. 힘들것 같다
-
-dengfoc 도 괜찮을듯?
-
-
+총 필요한 핀 수
+- 디지털 io: 9핀
+- adc: 9핀
+- en: 1핀
+- spi: 6핀
+총 25핀 필요.
 
 
 
@@ -91,8 +80,29 @@ https://oshwhub.com/expert/bu-zu-bai-yuan-de-simplefoc-wu-shua-dian-ji-qu-dong-b
 
 여기서는 drv8313 을 사용했는데, 외부 fet를 사용하는 건.. 힘들것 같다
 
-dengfoc 도 괜찮을듯?
 
+
+
+mcu  선정
+축마다 esp32 개별보드로 제작한다
+추후 다른 프로젝트에도 쉽게 사용 가능하고, 개발이 비교적 쉬움
+이 경우 메인 컨트롤 보드가 별도로 필요. 
+메인 보드와 서브 보드간 통신은? 프로토콜은?
+->난이도 급상승.. 
+
+그냥 1개의 esp32로 3축 모두 제어하는 것으로 변경
+안 되면 더 고성능의 mcu로 변경 고려.
+일단 foc 드라이버 회로를 먼저 만들고, esp32 로 1축 제어부터 테스트 진행하고 3축으로 확장. 
+
+
+코드 참조
+https://oshwhub.com/45coll/lai-luo-san-jiao-xing-3205-ban-ben-you-hua-bu-fen-dian-lu
+
+## 참고 자료
+- [서보를 이용한 브레이킹 메커니즘](https://www.youtube.com/shorts/a1a6j6rdXik) - 서보를 이용해 브레이크를 거는 방식 참고
+
+https://oshwhub.com/45coll/zi-ping-heng-di-lai-luo-san-jiao_10-10-ban-ben
+https://gitee.com/coll45/foc -> https://github.com/LeeMakeKR/FOC_fromgitee 로 클론. 
 
 
 
