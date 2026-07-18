@@ -44,7 +44,7 @@
 #define PIN_SPI_CS   5
 
 // ===== 객체 =====
-BLDCMotor motor = BLDCMotor(5); // 극쌍수 5 (06_stepcommutation 자동측정 추정치)
+BLDCMotor motor = BLDCMotor(7); // 극쌍수 5 (06_stepcommutation 자동측정 추정치)
 BLDCDriver3PWM driver = BLDCDriver3PWM(PIN_A, PIN_B, PIN_C, PIN_EN);
 InlineCurrentSense current_sense = InlineCurrentSense(500.0f, PIN_CS0_A, PIN_CS0_B); // INA240A2(50V/V) x 10mΩ = 500mV/A
 MagneticSensorSPI sensor = MagneticSensorSPI(AS5047_SPI, PIN_SPI_CS);

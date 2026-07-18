@@ -41,7 +41,7 @@ const float STALL_GAIN_THRESHOLD_RPS = 3.0f; // 이보다 실제속도 증가가
 const int   STALL_CONFIRM_COUNT = 3;         // 연속 정체 확인 횟수 (노이즈 방지)
 
 // ===== 객체 =====
-BLDCMotor motor = BLDCMotor(5);
+BLDCMotor motor = BLDCMotor(7);
 BLDCDriver3PWM driver = BLDCDriver3PWM(PIN_A, PIN_B, PIN_C, PIN_EN);
 InlineCurrentSense current_sense = InlineCurrentSense(500.0f, PIN_CS0_A, PIN_CS0_B);
 MagneticSensorSPI sensor = MagneticSensorSPI(AS5047_SPI, PIN_SPI_CS);
