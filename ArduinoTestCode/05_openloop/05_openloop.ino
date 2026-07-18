@@ -13,6 +13,17 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 12);
 Commander command = Commander(Serial);
 void doTarget(char* cmd) { command.scalar(&motor.target, cmd); }
 
+// 모터 Enable/Disable 제어 (E1: enable, E0: disable)
+void doEnable(char* cmd) {
+  if (cmd[0] == '0') {
+    motor.disable();
+    Serial.println("모터 Disable");
+  } else {
+    motor.enable();
+    Serial.println("모터 Enable");
+  }
+}
+
 void setup() {
   // 시리얼 모니터 포트 시작
   Serial.begin(115200);
@@ -21,7 +32,7 @@ void setup() {
   // 드라이버 전원 전압 설정 (사용하시는 공급 전원에 맞춰 수정)
   driver.voltage_power_supply = 12.0;
   // 개루프 제어 시 과열 방지를 위한 낮은 전압 제한 (필요 시 1~5V 사이로 조정)
-  driver.voltage_limit = 5.0;
+  driver.voltage_limit = 9.0;
 
   if (!driver.init()) {
     Serial.println("드라이버 초기화 실패!");
@@ -43,16 +54,18 @@ void setup() {
   // 목표 속도 [rad/s] (정속 회전, 양수: 정방향 / 음수: 역방향)
   motor.target = 5.0;
 
-  // 시리얼 명령 입력 인터페이스 추가 (T: 목표 속도 변경, 예: T10)
+  // 시리얼 명령 입력 인터페이스 추가 (T: 목표 속도 변경, E: enable/disable)
   command.add('T', doTarget, "target velocity");
+  command.add('E', doEnable, "motor enable/disable (E1/E0)");
 
   Serial.println(F("모터 준비 완료. 개루프 정속 회전 테스트를 시작합니다."));
   Serial.println(F("시리얼 모니터에 T[값] 형식으로 목표 속도(rad/s)를 입력하면 즉시 반영됩니다 (예: T10)."));
+  Serial.println(F("E1 입력 시 모터 Enable, E0 입력 시 Disable 됩니다."));
   _delay(1000);
 }
 
 void loop() {
-  // 개루프 제어는 loopFOC() 없이 move()만 반복 호출하면 됩니다
+  // 개루프 제어는 loopFOC() 없이 move()만 반복 호출하면 됩니다kj
   motor.move();
 
   // 시리얼 명령 처리 (목표 속도 실시간 변경)
