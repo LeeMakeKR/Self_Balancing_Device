@@ -63,7 +63,16 @@ const float         DIR_MIN_DEG  = 20.0f;   // 이보다 적게 움직이면 "�
 // ===== 코스트다운(관성 정지 대기) 파라미터 =====
 // 휠은 move(0)으로 안 멈춥니다. 정지 벡터를 물리면 락드로터 상태가 되어 전류만 치솟습니다.
 // 드라이버를 끄고 자연 감속을 기다립니다.
-const float         COAST_STOP_RPM   = 15.0f;  // 이 아래로 떨어지면 정지로 간주
+//
+// 정지 판정은 고정 시간창 동안의 각도 변화로 계산합니다.
+// sensor.getVelocity()를 매 루프 읽으면 14bit 양자화 노이즈 때문에 아직 돌고 있는데도
+// 순간값 0이 튀어나와 정지로 오판합니다. 한 번만 보고 넘어가면 특히 위험합니다.
+//
+// 0.5 RPM은 200ms 창에서 각도 변화 약 0.6도이고, AS5047의 분해능 0.022도보다
+// 충분히 커서 노이즈와 구분됩니다.
+const float         COAST_STOP_RPM   = 0.5f;   // 이 아래면 정지 후보
+const int           COAST_CONFIRM    = 3;      // 연속 몇 창을 만족해야 정지로 확정
+const unsigned long COAST_SAMPLE_MS  = 200;    // 속도 계산 시간창
 const unsigned long COAST_TIMEOUT_MS = 20000;  // 최대 대기 시간
 
 // ===== 3단계: 램프 파라미터 =====
@@ -128,11 +137,9 @@ float readAngleDeg() {
   return sensor.getAngle() * 180.0f / PI;
 }
 
-// 드라이버가 꺼진 상태(코스트다운)에서도 쓸 수 있는 센서 직독 속도
-float readSensorRpm() {
-  sensor.update();
-  return rpsToRpm(sensor.getVelocity());
-}
+// 순간 속도 직독은 정지 판정에 쓰지 않습니다.
+// 14bit 양자화 노이즈로 아직 돌고 있어도 0이 튀어나와 오판하기 때문입니다.
+// 정지 판정은 PH_COAST에서 고정 시간창의 각도 변화로 계산합니다.
 
 void enterPhase(TestPhase next) {
   phase = next;
@@ -141,10 +148,20 @@ void enterPhase(TestPhase next) {
   phase_start_angle = readAngleDeg();
 }
 
+// ===== 코스트다운 정지 판정 상태 =====
+float         coast_last_angle  = 0;
+unsigned long coast_last_sample = 0;
+int           coast_stop_count  = 0;
+
 // 드라이버를 끄고 휠이 자연 감속으로 멈추기를 기다리는 단계로 진입
 void startCoast(TestPhase next) {
   motor.disable();
   coast_next = next;
+
+  coast_last_angle  = readAngleDeg();
+  coast_last_sample = millis();
+  coast_stop_count  = 0;
+
   Serial.println(F("Coasting down (driver off, waiting for wheel to stop)..."));
   enterPhase(PH_COAST);
 }
@@ -365,21 +382,40 @@ void loop() {
 
     // ---------- 코스트다운: 드라이버 끄고 자연 감속 대기 ----------
     case PH_COAST: {
-      float rpm = readSensorRpm();
+      // 고정 시간창 동안의 각도 변화로 속도를 계산합니다.
+      // 순간 속도를 한 번만 보고 판정하면 양자화 노이즈로 조기 종료합니다.
+      if (now - coast_last_sample >= COAST_SAMPLE_MS) {
+        float angle = readAngleDeg();
+        float dt_s  = (now - coast_last_sample) / 1000.0f;
+        float rpm   = fabs((angle - coast_last_angle) / dt_s / 6.0f);  // deg/s -> RPM
 
-      if (now - last_print_ms >= 500) {
-        last_print_ms = now;
-        Serial.print(F("  coasting... "));
-        Serial.print(fabs(rpm), 0);
-        Serial.println(F(" RPM"));
+        coast_last_angle  = angle;
+        coast_last_sample = now;
+
+        if (rpm < COAST_STOP_RPM) coast_stop_count++;
+        else                      coast_stop_count = 0;
+
+        if (now - last_print_ms >= 500) {
+          last_print_ms = now;
+          Serial.print(F("  coasting... "));
+          Serial.print(rpm, 2);
+          Serial.print(F(" RPM  (stop "));
+          Serial.print(coast_stop_count);
+          Serial.print('/');
+          Serial.print(COAST_CONFIRM);
+          Serial.println(')');
+        }
       }
 
-      bool stopped   = fabs(rpm) < COAST_STOP_RPM;
+      // 시간이 아니라 센서 판정만으로 결정합니다.
+      bool stopped   = (coast_stop_count >= COAST_CONFIRM);
       bool timed_out = (now - phase_start_ms) >= COAST_TIMEOUT_MS;
 
       if (stopped || timed_out) {
         if (timed_out && !stopped) {
           Serial.println(F("  coast timeout - proceeding anyway."));
+        } else {
+          Serial.println(F("  [STOPPED] confirmed at rest by encoder."));
         }
         motor.enable();
         dir_cmd_rpm = 0;

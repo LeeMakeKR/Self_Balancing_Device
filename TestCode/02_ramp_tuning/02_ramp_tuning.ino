@@ -70,10 +70,15 @@ const float         KNEE_TOLERANCE   = 1.05f;  // 최소 t95의 몇 배까지 "�
 // 정지 판정은 고정 시간창(COAST_SAMPLE_MS) 동안의 각도 변화로 계산합니다.
 // sensor.getVelocity()를 매 루프 읽으면 양자화 노이즈로 순간 0이 튀어나와
 // 아직 돌고 있는데도 정지로 오판합니다.
-const float         STOP_RPM         = 30.0f;   // 이 아래면 정지 후보
+// 정지 판정은 "거의 멈춤"이 아니라 "완전히 멈춤"이어야 합니다.
+// 30 RPM(약 3.1 rad/s)은 휠이 눈에 띄게 돌고 있는 속도라, 그 상태에서 다음 시행을
+// 시작하면 초기 속도가 0이 아닌 채로 t95를 재게 됩니다.
+//
+// 0.5 RPM은 200ms 창에서 각도 변화 약 0.6도에 해당합니다.
+// AS5047의 14bit 분해능이 0.022도이므로 노이즈보다 충분히 큽니다.
+const float         STOP_RPM         = 0.5f;    // 이 아래면 정지 후보
 const int           STOP_CONFIRM     = 3;       // 연속 몇 번 확인해야 정지로 확정
 const unsigned long COAST_SAMPLE_MS  = 200;     // 속도 계산 시간창
-const unsigned long MIN_COAST_MS     = 2000;    // 최소 코스팅 시간 (조기 종료 방지)
 const unsigned long COAST_TIMEOUT_MS = 120000;  // 자유 감속은 오래 걸립니다
 const unsigned long SETTLE_MS        = 1000;
 
@@ -474,7 +479,7 @@ void loop() {
           Serial.print(F("    coasting "));
           Serial.print((now - state_start) / 1000);
           Serial.print(F("s ... "));
-          Serial.print(rpm, 0);
+          Serial.print(rpm, 2);
           Serial.print(F(" RPM  (stop "));
           Serial.print(stop_count);
           Serial.print('/');
@@ -483,8 +488,9 @@ void loop() {
         }
       }
 
-      // 최소 코스팅 시간을 두어, 감속 직후 노이즈로 조기 종료하지 않게 합니다.
-      bool stopped   = (stop_count >= STOP_CONFIRM) && (now - state_start >= MIN_COAST_MS);
+      // 시간 기준을 걸지 않고 센서 판정만으로 결정합니다.
+      // 0.5 RPM 임계 + 3창 연속(600ms) 확인이면 감속 직후 노이즈로 조기 종료할 수 없습니다.
+      bool stopped   = (stop_count >= STOP_CONFIRM);
       bool timed_out = (now - state_start) >= COAST_TIMEOUT_MS;
 
       if (stopped || timed_out) {
