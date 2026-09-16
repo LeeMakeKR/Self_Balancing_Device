@@ -26,7 +26,7 @@
 | 케이블 길이 | 100 mm | 케이블 동봉 |
 | 베어링 | NSK 볼베어링(수입) | |
 | 회전자 | 희토류 중자력 이너로터 | |
-| 인코더 | 100선 | 배선/신호 방식은 판매자도 불확실하다고 명시 |
+| 인코더 | 100선 | 배선/신호 방식은 판매자도 불확실하다고 명시. FG 신호 인출법은 3.2절 참고 |
 | 제어 신호 | 펄스 주파수 변조(PFM) | 유효 범위 1000~26000 Hz, **기동은 16000~26000 Hz 구간에서만** |
 | 회전 방향 | 정/역 가능 | 녹색선으로 제어 |
 | 전자 브레이크 | 내장 | 백색선으로 제어 |
@@ -42,49 +42,71 @@
 | 22000 | 3300 | 108 |
 | 26000 | 3900 | 122 |
 
-→ 1000 Hz 증가당 약 150 RPM 증가로 매우 선형적. 단, **16000 Hz 미만에서는 기동 자체가 안 되는 것으로 보고**되어 위 표의 1000/10000/12000 Hz 값은 "기동 후 감속"으로만 도달 가능할 수 있음(직접 검증 필요).
+→ 1000 Hz 증가당 약 150 RPM 증가로 매우 선형적. 단, **16000 Hz 미만에서는 기동 자체가 안 되는 것으로 보고**되어 위 표의 1000/10000/12000 Hz 값은 "기동 후 감속"으로만 도달 가능할 수 있음(직접 검증 필요). 이 표의 모든 행이 정확히 "400펄스=1회전" 비율을 가리킨다는 점은 3.3절 참고.
 
 ## 3. 배선 / 핀아웃
 
-⚠️ **주의**: 출처마다 배선 설명이 다름 (아래 3.1 판매자 원문 vs 3.2 Arduino Forum 12핀 분석). 로트/버전 차이로 실제 색상-기능 매핑이 다를 수 있다는 보고도 있음 → **실제 사용 전 반드시 멀티미터로 연속성 확인 필요.**
+⚠️ **주의**: 로트/버전에 따라 색상-기능 매핑이 다를 수 있다는 보고가 다른 개체에서 있었음 → **실제 사용 전 반드시 멀티미터로 연속성 확인 필요.**
 
-### 3.1 판매자(AliExpress) 원문 배선 — 6선 + 인코더선 3선
+### 3.1 12핀 커넥터 — 실측 색상 매핑
 
-| 색상 | 기능 | 로직 |
-|---|---|---|
-| 빨강(Red) | +12V | DC 10~13V, **극성 반전 시 드라이버 보드 소손** |
-| 검정(Black) | GND | |
-| 노랑(Yellow) | PWM(PFM) 속도 입력 | 16000~26000 Hz 유효 |
-| 파랑(Blue) | Start/Stop | Red(+)에 연결 = 시작, 연결 해제 = 정지 |
-| 흰색(White) | 전자 브레이크 | 띄움(open) = 브레이크 해제, GND 연결 = 브레이크 작동 |
-| 초록(Green) | 방향(DIR) | 띄움(open) = CW, Red(+)에 연결 = CCW |
-| 나머지 3선(인코더) | +3.3V(추정) / GND / 신호 출력 | 판매자 원문이 모호함("+3.7V, +3.7V, 나머지 하나가 신호출력") — **신뢰도 낮음, 직접 프로빙 필요** |
+> 핀 기능/순서 출처: [Reverse Engineering the Nidec 24H055M020 Encoder Sensors (Instructables, NewsonsElectronics, 2026-03-09)](https://www.instructables.com/Reverse-Engineering-the-Nidec-24H055M020-Encoder-S/) — 8절에 이미 기록된 YouTube 영상(`TdrySOXRl-Y`)과 동일 저자의 글 버전. 색상은 실제 구매 개체 확인 기준.
 
-**기동 순서 (판매자 권장)**:
-
-1. Red/Black에 12V 상시 인가
-2. Yellow에 16000~26000 Hz PFM 신호 인가
-3. Blue를 Red(+)에 연결 → 모터 기동 (Blue는 **가장 나중에 연결, 가장 먼저 해제** 권장)
-4. CCW로 돌리고 싶으면 **Green을 Blue와 병렬로 묶어서 함께 마지막에 연결 / 먼저 해제** — 판매자도 "드라이버 보드가 방향선에 전원이 들어오는 순간부터 반응하는 것 같다"며 정확한 원인은 모른다고 밝힘
-
-### 3.2 Arduino Forum 12핀 분석 (다른 커넥터 버전으로 추정)
-
-`nidec-24h055m020-operation-solved-mostly` 스레드에서 리버스 엔지니어링한 12핀 커넥터:
-
-| 핀 | 색상 | 기능 | 로직 |
+| 핀 번호 | 색상 | 기능 | 로직 |
 |---|---|---|---|
-| 1, 2 | RED | +12V 전원 | 모터 전력 공급 |
-| 3, 4 | BLK | GND | 모터 전원 GND |
-| 5 | VIO | 신호 GND | 신호 계열 공통 |
-| 6 | GRY | 미확인 | 항상 High로 관찰됨 |
-| 7 | BRN | Enable | High = 동작, Low = 정지/브레이크 해제 |
-| 8 | ORG | 상태 출력 | High = 회전중, Low = 정지 |
-| 9 | GRN | 방향(DIR) | High = 반시계, Low = 시계방향 |
-| 10 | WHT | +5V | 컨트롤러(내부 MCU)용 전원 |
-| 11 | BLU | 브레이크 | Low = 브레이크 작동, High = 브레이크 해제 |
-| 12 | YEL | PFM(속도) | 150~26000 Hz |
+| 1, 2 | Red | VCC(12V) | 모터 전원 +12V |
+| 3, 4 | Black | GND | 모터 전원 GND |
+| 5 | Violet | GND | Hall 센서용 GND |
+| 6 | Grey | HW | Hall 센서 3 원신호 (노이즈 많음) |
+| 7 | Brown | HV | Hall 센서 2 원신호 (노이즈 많음) |
+| 8 | Orange | HU / FG(개조 후) | 원래는 Hall 센서 1(HU) 원신호, PCB 개조 후 FG 신호 출력으로 재사용 가능 (3.2절) |
+| 9 | Green | Direction | VCC = CCW, GND = CW |
+| 10 | White | Brake | GND 연결 = 브레이크 작동 |
+| 11 | Blue | Enable | 평상시 +12V로 고정(스탠바이 해제) |
+| 12 | Yellow | PFM(속도) | 저자는 "1~16 kHz"라고 기술 (아래 3.2절 주 참고 — 문서 내에서도 다른 값이 나옴) |
 
-다른 사용자(2024/10, `self-balancing-reaction-wheel...` 스레드)는 **BRAKE/PWM 핀이 뒤바뀌어 있고 로직도 반대**인 개체를 보고함 → 3.1/3.2 중 어느 쪽도 맹신하지 말고 개별 개체에서 실측 검증.
+**교차검증**: 2절(판매자 스펙)에 언급된 "녹색선=방향", "백색선=브레이크"와 이 표의 Green=Direction, White=Brake가 일치함 — 독립 출처 간 색상-기능 관계가 일치해 신뢰도가 높음.
+
+### 3.2 인코더 신호 — Hall 원신호 vs FG 신호 (핵심 발견)
+
+- 핀 5/6/7(GND/HW/HV, Violet/Grey/Brown)과 핀 8(HU/FG, Orange)은 원래 Hall 센서 원신호이며, 무회전 시 신호선(6/7/8번)은 약 **3.6V**로 바이어스됨 — 모터 내장 드라이버 IC(ROHM **BD63000**, [datasheet PDF](https://content.instructables.com/FLQ/33US/MMF886LG/FLQ33USMMF886LG.pdf))의 내부 VREG에 물려 있기 때문.
+- HU/HV/HW 원신호는 외부 증폭·필터링 없이는 노이즈가 많아 그대로 쓰기 어려움. 두 가지 대안:
+  1. **저속 한정**: ADC로 Hall 라인을 읽어 이동평균 + 임계값 교차 방식으로 RPM 추정 (아래 예시 코드 참고).
+  2. **권장**: BD63000이 내부적으로 이미 깨끗한 **FG(Frequency Generator) 펄스**를 만들고 있음 → PCB에서 저항 2개가 붙어 있는 FG 지점을 찾아 배선을 개조(모드)해 8번 핀(원래 HU, Orange)으로 FG 신호를 인출. 이후 해당 핀은 오실로스코프 상 깨끗한 사각파로 관찰됨. Arduino에서는 `INPUT_PULLUP` + **하강 에지 인터럽트**로 펄스 카운트 → RPM 환산.
+
+```cpp
+// Hall 원신호 이동평균 기반 RPM 추정 (저속 전용, 대안 1)
+H1Total -= H1ReadingsArray[H1Index];
+H1ReadingsArray[H1Index] = analogRead(H1);
+H1Total += H1ReadingsArray[H1Index];
+H1Index++;
+if (H1Index >= H1Readings) H1Index = 0;
+H1Average = H1Total / H1Readings;
+threshold = H1Average;
+
+if (H1Value > threshold + 3 && lastState != 1) { counterAbove++; lastState = 1; }
+if (H1Value <= threshold - 3 && lastState != 0) { lastState = 0; }
+```
+
+```cpp
+// FG 핀(개조 후) 기반 RPM 카운트 (권장, 대안 2)
+pinMode(fgPin, INPUT_PULLUP); // Digital pin 2
+attachInterrupt(digitalPinToInterrupt(fgPin), countFallingEdge, FALLING);
+```
+
+- **속도-RPM 상관관계 교차검증**: 이 출처는 "PFM 1 kHz 증가당 FG 기준 RPM 150 증가"라고 실측 — 2절의 판매자 제공 표(1000Hz 증가당 약 150 RPM)와 **기울기가 정확히 일치**. 두 출처가 독립적으로 같은 결론 → 이 비율 자체의 신뢰도는 높음.
+- **유효 PFM 범위는 여전히 불일치**: 같은 출처 안에서도 "1~16 kHz"(3.1절)와 "250 Hz~20,000 Hz"(실측 결과)가 다르게 서술됨. 기존 2절의 "16000 Hz 미만 기동 불가" 주장과도 배치됨 → **어느 쪽도 확정하지 말고 개체별 재검증**.
+- 이 저자는 50% 듀티 PFM이 아니라 **80% 고정 듀티**의 하드웨어 타이머 PWM(ATmega Timer1, ICR1/OCR1A 레지스터 직접 조작)으로 정상 동작시킴 — 4절에 이미 기록된 "고정 반송 주파수 + 가변 듀티" 성공 사례와 같은 계열.
+- ⚠️ **실전 우선순위**: "PFM=50% 듀티"는 교과서적 정의에서 나온 가정(4절)일 뿐, 이 문서의 출처 중 실제로 코드까지 공개되어 동작이 확인된 사례는 이 80% 듀티뿐임. 새 개체를 테스트할 때는 **50%가 아니라 80% 듀티부터 우선 시도**할 것 — 50% 듀티로 PFM을 걸었을 때 모터가 반응 없이 한 각도에 고정되는 증상이 실제로 관측된 바 있음(Nidec_ESP32C3_테스트.md 실측).
+
+### 3.3 PFM = 펄스 카운트(스텝) 명령 가설 — 커뮤니티 제보 (미검증)
+
+> 출처: 사용자 제보 댓글(정확한 게시 위치·작성자 미상). 원문 요약: "PWM 라인에 400펄스를 보내면 모터가 1회전한다. 즉 폐루프 위치 제어 모터이며 정확한 위치 제어에 외부 피드백 신호는 필요 없다. Nidec이 피드백 구현을 잘못했거나 그래서 AliExpress에 나온 것 같다."
+
+- **수치 교차검증(문서 자체 데이터로 확인됨)**: 2절 속도-주파수 표의 모든 행에서 `PFM 주파수 ÷ (RPM/60)`을 계산하면 정확히 **400**이 나옴 (1000/2.5=400, 10000/25=400, 12000/30=400, 18000/45=400, 22000/55=400, 26000/65=400). 3.2절 Instructables 실측 기울기(1kHz=150RPM)와도 동일 비율 → 6개 데이터 포인트 + 별도 출처가 모두 정확히 400을 가리킴. 우연으로 보기 어려움.
+- 이 값이 맞다면 PFM 입력은 순수 연속 속도 지령이 아니라 **펄스 수 = 회전각(스텝) 명령**이고, 내부 Hall/FG는 자체 커뮤테이션 전용으로만 쓰이는 폐루프 위치 서보 구조일 가능성이 있음. 판매자가 인코더 배선을 설명하지 못한 이유(외부에서 읽을 필요가 원래 없는 내부 신호)와도 정합적.
+- **검증되지 않은 부분**: 이 가설이 맞다면 정지 상태에서 저속으로 낱개 펄스를 보내도 1:1로 반응해야 하는데, 2절에는 "16000 Hz 미만에서는 기동 자체가 안 됨"이라는 상반된 보고가 있음 — 진짜 스텝모터식 저속 단발 펄스 응답이 되는지는 별도 실측 전까지 확정하지 말 것.
+- **이 프로젝트(리액션 휠)에는 영향 제한적**: 목적이 위치제어가 아니라 연속 속도제어이므로, 이 가설의 진위와 무관하게 8번 핀 FG 개조·속도 피드백 계획은 그대로 유효.
 
 ## 4. 제어 방식 — 핵심 주의사항
 
@@ -98,7 +120,7 @@
 ## 5. 내부 구조 (리버스 엔지니어링 결과)
 
 - **MCU**: Renesas R5F1036A — 입력 신호 처리 및 제어 로직
-- **모터 드라이버 IC**: ROHM BD63002 — 실제 3상 구동 담당
+- **모터 드라이버 IC**: ROHM BD63000 — 실제 3상 구동 담당 (구매 제품 실측 기준, Arduino Forum 출처의 "BD63002" 기재는 오타로 판단)
 - **브레이크 동작 원리**: 브레이크 라인 활성화 시 MCU가 능동적으로 모터를 정지 위치로 구동 → 단순 프리휠이 아닌 강한 보유력(holding force) 제공
 
 ## 6. 알려진 문제
@@ -115,15 +137,20 @@
 ## 7. 테스트 전 체크리스트
 
 1. 🔴 **전원 인가 전** 멀티미터로 Red/Black 극성 확인 — 역결선 시 드라이버 보드 소손, 되돌릴 수 없음 (약 5분)
-2. 나머지 선(Yellow/Blue/White/Green + 인코더 3선) 연속성 확인 → 3.1/3.2 표와 대조 (약 10분)
+2. 나머지 선(Yellow/Blue/White/Green + 인코더 4선) 연속성 확인 → 3.1절 표와 대조 (약 10분)
 3. Blue(Start/Stop) 연결 없이 12V + Yellow PFM(16~26kHz)만 먼저 인가해 무반응 확인 (안전 확인용, 약 5분)
 4. Blue를 Red에 연결해 기동, `tone()` 함수로 PFM 주파수를 16kHz부터 서서히 올리며 반응 관찰 (약 15분)
-5. 인코더 3선 중 신호 출력 추정선을 오실로스코프/로직 애널라이저로 프로빙 (판매자도 불확실하다고 한 부분, 약 15분)
+5. 인코더 관련 신호선(5~8번 핀, Hall 원신호 HU/HV/HW)을 오실로스코프/로직 애널라이저로 프로빙 (약 15분)
+
+**고급(선택) — 기본 기동 성공 후에만 진행**:
+
+- Hall 원신호(HU/HV/HW) 대신 깨끗한 RPM 신호가 필요하면, PCB에서 FG 지점(저항 2개 연결부)을 찾아 배선 개조 후 오실로스코프로 사각파 확인 (3.2절 참고, 약 20분 — 납땜 개조 포함이라 비가역적일 수 있음)
 
 ## 8. 참고 자료 (출처)
 
-- 판매자(AliExpress) 제품 상세페이지 원문 — 사용자가 직접 확인해 전달한 텍스트, 2절/3.1절/기동순서의 1차 출처 (URL 미상, 위 [AliExpress 검색 결과 링크](https://www.aliexpress.com/item/1005005561683685.html)와 동일 제품군으로 추정)
+- 판매자(AliExpress) 제품 상세페이지 원문 — 사용자가 직접 확인해 전달한 텍스트, 2절의 1차 출처 (URL 미상, 위 [AliExpress 검색 결과 링크](https://www.aliexpress.com/item/1005005561683685.html)와 동일 제품군으로 추정)
 - [Arduino Forum — Self Balancing Reaction Wheel problems with Nidec 24H 055M020](https://forum.arduino.cc/t/self-balancing-reaction-wheel-problems-with-nidec-24h-055m020/1139918) — 본 프로젝트와 동일한 리액션 휠 용도의 실사용 사례
-- [Arduino Forum — Nidec 24H055M020 operation solved, mostly](https://forum.arduino.cc/t/nidec-24h055m020-operation-solved-mostly/1429057) — 12핀 버전 핀아웃/내부 IC 리버스 엔지니어링 상세
-- [YouTube — No Datasheet, No Guide: Reverse Engineering the Nidec 24H055M020 Encoder](https://www.youtube.com/watch?v=TdrySOXRl-Y) — 인코더 리버스 엔지니어링 (영상 미확인, 링크만 기록)
+- [Arduino Forum — Nidec 24H055M020 operation solved, mostly](https://forum.arduino.cc/t/nidec-24h055m020-operation-solved-mostly/1429057) — 12핀 버전 핀아웃/내부 IC 리버스 엔지니어링 스레드 (해당 핀아웃은 구매 개체와 배치가 달라 본문에는 미반영)
+- [YouTube — No Datasheet, No Guide: Reverse Engineering the Nidec 24H055M020 Encoder](https://www.youtube.com/watch?v=TdrySOXRl-Y) — 인코더 리버스 엔지니어링 영상. 글 버전은 아래 Instructables 링크로 확인 완료(3.1/3.2절 반영)
+- [Instructables — Reverse Engineering the Nidec 24H055M020 Encoder Sensors](https://www.instructables.com/Reverse-Engineering-the-Nidec-24H055M020-Encoder-S/) (NewsonsElectronics, 2026-03-09) — 위 YouTube 영상과 동일 저자, FG 신호 인출 개조 및 12핀 핀아웃(기능/순서), 드라이버 IC(BD63000) 언급. 전체 내용 확인 완료, 3.1/3.2절 참고
 - 공식 NIDEC 데이터시트: **미발견** — acim.nidec.com 등 공식 채널에서 검색되지 않음, 소비자향 유통 제품으로 추정
